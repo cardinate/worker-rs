@@ -7,6 +7,10 @@ pub mod layout;
 pub mod local_fs;
 pub mod manager;
 pub mod s3_fs;
+mod state_;
+mod state_manager_;
+mod downloader_;
+mod dataset_tracker;
 
 pub trait Filesystem {
     // Returning a collection instead of iterator because partial results are useless
