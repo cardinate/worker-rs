@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use prost::Message;
 use subsquid_messages::QueryExecuted;
@@ -8,7 +6,7 @@ use tokio_rusqlite::Connection;
 
 pub struct LogsStorage {
     db: Connection,
-    has_next_seq_no: Arc<RwLock<bool>>,
+    has_next_seq_no: RwLock<bool>,
 }
 
 impl LogsStorage {
@@ -30,7 +28,7 @@ impl LogsStorage {
 
         Ok(Self {
             db,
-            has_next_seq_no: Arc::new(RwLock::new(has_next_seq_no)),
+            has_next_seq_no: RwLock::new(has_next_seq_no),
         })
     }
 
@@ -125,9 +123,9 @@ mod tests {
     #[tokio::test]
     async fn test_logs_storage() {
         let logs_storage = LogsStorage::new(":memory:").await.unwrap();
-        assert!(!logs_storage.is_initialized());
+        assert!(!logs_storage.is_initialized().await);
         logs_storage.logs_collected(Some(2)).await;
-        assert!(logs_storage.is_initialized());
+        assert!(logs_storage.is_initialized().await);
         logs_storage
             .save_log(QueryExecuted {
                 query: Some(subsquid_messages::Query {
