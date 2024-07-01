@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use subsquid_messages::WorkerAssignment;
 use tokio::time::MissedTickBehavior;
 use tokio_util::sync::CancellationToken;
 
@@ -35,6 +36,13 @@ impl HttpController {
     }
 
     pub async fn run(&self, cancellation_token: CancellationToken) {
+        tokio::join!(
+            self.run_ping_loop(cancellation_token.child_token()),
+            self.worker.run(cancellation_token.child_token()),
+        );
+    }
+
+    async fn run_ping_loop(&self, cancellation_token: CancellationToken) {
         let mut timer = tokio::time::interval_at(
             tokio::time::Instant::now() + self.ping_interval,
             self.ping_interval,
@@ -50,19 +58,22 @@ impl HttpController {
             tracing::debug!("Sending ping");
             let status = self.worker.status();
             let result = self.send_ping(status).await;
-            if let Err(err) = result {
-                tracing::warn!("Couldn't send ping: {:?}", err);
-            }
-            // TODO: receive assignment
+            match result {
+                Err(err) => tracing::warn!("Couldn't send ping: {:?}", err),
+                Ok(assignment) => {
+                    self.worker.set_assignment(assignment);
+                }
+            };
         }
     }
 
-    async fn send_ping(&self, status: Status) -> anyhow::Result<()> {
+    async fn send_ping(&self, status: Status) -> anyhow::Result<WorkerAssignment> {
         reqwest::Client::new()
             .post([&self.router_url, "/ping"].join(""))
             .json(&serde_json::json!({
                 "worker_id": self.worker_id,
                 "worker_url": self.worker_url,
+                "version": env!("CARGO_PKG_VERSION"),
                 "state": {
                     "datasets": status.available,
                     "stored_bytes": status.stored_bytes,
@@ -74,7 +85,7 @@ impl HttpController {
             .await?
             .error_for_status()?
             .json()
-            .await?;
-        Ok(())
+            .await
+            .map_err(From::from)
     }
 }

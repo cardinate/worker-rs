@@ -3,6 +3,7 @@ use std::sync::{
     Arc,
 };
 
+use subsquid_messages::WorkerAssignment;
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 
@@ -12,10 +13,10 @@ use crate::{
     metrics,
     query::result::{QueryError, QueryOk, QueryResult},
     storage::{
-        datasets_index::DatasetsIndex,
+        datasets_index::parse_assignment,
         manager::{self, StateManager},
     },
-    types::{dataset::Dataset, state::ChunkSet},
+    types::dataset::Dataset,
 };
 
 lazy_static::lazy_static! {
@@ -51,12 +52,14 @@ impl Worker {
         self
     }
 
-    pub fn set_desired_chunks(&self, chunks: ChunkSet) {
-        self.state_manager.set_desired_chunks(chunks);
-    }
-
-    pub fn set_datasets_index(&self, datasets_index: DatasetsIndex) {
-        self.state_manager.set_datasets_index(datasets_index);
+    pub fn set_assignment(&self, assignment: WorkerAssignment) {
+        match parse_assignment(assignment) {
+            Ok((chunks, datasets_index)) => {
+                self.state_manager.set_datasets_index(datasets_index);
+                self.state_manager.set_desired_chunks(chunks);
+            }
+            Err(e) => tracing::warn!("Invalid assignment: {e:?}"),
+        }
     }
 
     pub fn stop_downloads(&self) {

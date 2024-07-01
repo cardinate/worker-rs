@@ -23,7 +23,6 @@ use crate::{
     logs_storage::LogsStorage,
     metrics,
     query::result::{QueryError, QueryResult},
-    storage::datasets_index::parse_assignment,
     util::{hash::sha3_256, UseOnce},
 };
 
@@ -227,13 +226,7 @@ impl<EventStream: Stream<Item = WorkerEvent>> P2PController<EventStream> {
             }
             Some(Status::Active(assignment)) => {
                 info!("Received pong from the scheduler");
-                match parse_assignment(assignment) {
-                    Ok((chunks, datasets_index)) => {
-                        self.worker.set_datasets_index(datasets_index);
-                        self.worker.set_desired_chunks(chunks);
-                    }
-                    Err(e) => warn!("Invalid assignment: {e:?}"),
-                }
+                self.worker.set_assignment(assignment);
                 metrics::set_status(metrics::WorkerStatus::Active);
             }
             None => {
