@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use anyhow::Result;
 use axum::{http::StatusCode, response::IntoResponse};
 
 use crate::util::hash::sha3_256;
@@ -9,38 +8,31 @@ pub type QueryResult = std::result::Result<QueryOk, QueryError>;
 
 #[derive(Debug, Clone)]
 pub struct QueryOk {
-    pub raw_data: Vec<u8>,
-    pub compressed_data: Vec<u8>,
-    pub data_size: usize,
-    pub compressed_size: usize,
-    pub data_sha3_256: Vec<u8>,
+    pub data: Vec<u8>,
     pub num_read_chunks: usize,
     pub exec_time: Duration,
 }
 
 impl QueryOk {
-    pub fn new(data: Vec<u8>, num_read_chunks: usize, exec_time: Duration) -> Result<Self> {
+    pub fn new(data: Vec<u8>, num_read_chunks: usize, exec_time: Duration) -> Self {
+        Self {
+            data,
+            num_read_chunks,
+            exec_time,
+        }
+    }
+
+    pub fn compressed_data(&self) -> Vec<u8> {
         use flate2::write::GzEncoder;
         use std::io::Write;
 
-        let data_size = data.len();
-
         let mut encoder = GzEncoder::new(Vec::new(), flate2::Compression::default());
-        encoder.write_all(&data)?;
-        let compressed_data = encoder.finish()?;
-        let compressed_size = compressed_data.len();
+        encoder.write_all(&self.data).expect("Couldn't gzip data");
+        encoder.finish().expect("Couldn't finish gzipping data")
+    }
 
-        let hash = sha3_256(&data);
-
-        Ok(Self {
-            raw_data: data,
-            compressed_data,
-            data_size,
-            compressed_size,
-            data_sha3_256: hash,
-            num_read_chunks,
-            exec_time,
-        })
+    pub fn sha3_256(&self) -> Vec<u8> {
+        sha3_256(&self.data)
     }
 }
 

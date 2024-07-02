@@ -48,7 +48,7 @@ async fn run_query(
 ) -> Response {
     let result = worker.run_query(query_str, dataset, None).await;
     metrics::query_executed(&result);
-    result.map(|result| result.raw_data).into_response()
+    result.map(|result| result.data).into_response()
 }
 
 async fn get_metrics(registry: Arc<Registry>) -> impl IntoResponse {

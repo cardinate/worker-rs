@@ -294,7 +294,7 @@ impl<EventStream: Stream<Item = WorkerEvent>> P2PController<EventStream> {
         use subsquid_messages::query_result;
         let query_result = match result {
             Ok(result) => query_result::Result::Ok(subsquid_messages::OkResult {
-                data: result.compressed_data,
+                data: result.compressed_data(),
                 exec_plan: None,
             }),
             Err(e @ QueryError::NotFound) => query_result::Result::BadRequest(e.to_string()),
@@ -337,8 +337,8 @@ impl<EventStream: Stream<Item = WorkerEvent>> P2PController<EventStream> {
                 query_executed::Result::Ok(InputAndOutput {
                     num_read_chunks: Some(result.num_read_chunks as u32),
                     output: Some(SizeAndHash {
-                        size: Some(result.data_size as u32),
-                        sha3_256: result.data_sha3_256.clone(),
+                        size: Some(result.data.len() as u32),
+                        sha3_256: result.sha3_256(),
                     }),
                 }),
                 Some(result.exec_time),

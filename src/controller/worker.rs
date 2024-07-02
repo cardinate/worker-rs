@@ -131,7 +131,7 @@ impl Worker {
                     bytes,
                     chunks_guard.len(),
                     start_time.elapsed(),
-                )?)
+                ))
             })();
             tx.send(result).unwrap_or_else(|_| {
                 tracing::warn!("Query runner didn't wait for the result");

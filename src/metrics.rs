@@ -63,9 +63,7 @@ pub fn query_executed(result: &QueryResult) {
     let (status, result) = match result {
         Ok(result) => (QueryStatus::Ok, Some(result)),
         Err(QueryError::NoAllocation) => (QueryStatus::NoAllocation, None),
-        Err(QueryError::NotFound | QueryError::BadRequest(_)) => {
-            (QueryStatus::BadRequest, None)
-        }
+        Err(QueryError::NotFound | QueryError::BadRequest(_)) => (QueryStatus::BadRequest, None),
         Err(QueryError::Other(_) | QueryError::ServiceOverloaded) => {
             (QueryStatus::ServerError, None)
         }
@@ -74,7 +72,7 @@ pub fn query_executed(result: &QueryResult) {
         .get_or_create(&QueryExecutedLabels { status })
         .inc();
     if let Some(result) = result {
-        QUERY_RESULT_SIZE.observe(result.compressed_size as f64);
+        QUERY_RESULT_SIZE.observe(result.data.len() as f64);
         READ_CHUNKS.observe(result.num_read_chunks as f64);
     }
 }
