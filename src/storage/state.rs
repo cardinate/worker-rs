@@ -123,11 +123,12 @@ impl State {
     pub fn find_and_lock_chunks(
         &mut self,
         dataset: Arc<Dataset>,
-        block_number: BlockNumber,
+        from_block: BlockNumber,
+        to_block: Option<BlockNumber>,
     ) -> Vec<ChunkRef> {
         let from_chunk = DataChunk {
-            last_block: block_number,
-            first_block: block_number,
+            last_block: from_block,
+            first_block: from_block,
             ..Default::default()
         };
         let from = ChunkRef {
@@ -139,7 +140,7 @@ impl State {
             None => return Vec::new(),
             Some(chunk) => chunk.clone(),
         };
-        if first.chunk.first_block > block_number {
+        if first.chunk.first_block > from_block {
             return Vec::new();
         }
 
@@ -148,6 +149,8 @@ impl State {
         for chunk in range {
             if chunk.dataset == dataset
                 && *chunk.chunk.first_block.as_ref() == *last_block.as_ref() + 1
+                && !to_block
+                    .is_some_and(|to_block| chunk.chunk.first_block.as_ref() > to_block.as_ref())
             {
                 result.push(chunk.clone());
                 last_block = chunk.chunk.last_block;

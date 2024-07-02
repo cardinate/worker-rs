@@ -142,14 +142,15 @@ impl StateManager {
     pub fn find_chunks(
         self: Arc<Self>,
         encoded_dataset: &str,
-        block_number: BlockNumber,
+        from_block: BlockNumber,
+        to_block: Option<BlockNumber>,
     ) -> Result<scopeguard::ScopeGuard<Vec<PathBuf>, impl FnOnce(Vec<PathBuf>)>> {
         let dataset = dataset::decode_dataset(encoded_dataset)
             .with_context(|| format!("Couldn't decode dataset: {encoded_dataset}"))?;
         let chunks = self
             .state
             .lock()
-            .find_and_lock_chunks(Arc::new(dataset), block_number);
+            .find_and_lock_chunks(Arc::new(dataset), from_block, to_block);
         let paths = chunks
             .iter()
             .map(|chunk| self.fs.root.join(encoded_dataset).join(chunk.chunk.path()))

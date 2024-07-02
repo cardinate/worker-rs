@@ -109,10 +109,11 @@ impl Worker {
                 "Query without first_block".to_owned(),
             ));
         };
-        let chunks_guard = self
-            .state_manager
-            .clone()
-            .find_chunks(&dataset, (first_block as u32).into())?;
+        let chunks_guard = self.state_manager.clone().find_chunks(
+            &dataset,
+            (first_block as u32).into(),
+            query.last_block().map(|b| (b as u32).into()),
+        )?;
         if chunks_guard.is_empty() {
             return Err(QueryError::NotFound);
         };
